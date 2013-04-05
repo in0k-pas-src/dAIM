@@ -84,9 +84,10 @@ type
 //     #       //  ФУНКЦИОНАЛ для работы с массивом
 //-=-=-=-=-=-=-//=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=//
 
-procedure dAimB_INITialize(var   dAIM:tDAIM; const Count:tDAIMb_count; const sizeOf:tDAIM_sizeOf); overload; {$ifdef _INLINE_} inline; {$endif}
-procedure dAimB_INITialize(var   dAIM:tDAIM);                                                      overload; {$ifdef _INLINE_} inline; {$endif}
-procedure dAimB_FINALize  (var   dAIM:tDAIM; const sizeOf:tDAIM_sizeOf);                                     {$ifdef _INLINE_} inline; {$endif}
+procedure dAimB_INITialize(var   dAIM:tDAIM);                                                                                overload; {$ifdef _INLINE_} inline; {$endif}
+procedure dAimB_INITialize(var   dAIM:tDAIM; const Count:tDAIMb_count; const sizeOf:tDAIM_sizeOf);                           overload; {$ifdef _INLINE_} inline; {$endif}
+procedure dAimB_INITialize(var   dAIM:tDAIM; const Count:tDAIMb_count; const sizeOf:tDAIM_sizeOf; const defItemVAL:pointer); overload; {$ifdef _INLINE_} inline; {$endif}
+procedure dAimB_FINALize  (var   dAIM:tDAIM; const sizeOf:tDAIM_sizeOf); {$ifdef _INLINE_} inline; {$endif}
 
 //{указатель на элемент}--------------------------------------------------------
 
@@ -101,14 +102,12 @@ procedure dAimB_setLength (var   dAIM:tDAIM; const Value:byte; const sizeOF:tDAI
 
 //{Добавить Удалить}------------------------------------------------------------
 
-procedure AIM_itemsADD  (const AIM:pAIM; const Index:tAIM_index; const Count:tAIM_length; const sizeOF:tAIM_sizeOf; const defItemVAL:pointer); overload; {$ifdef _INLINE_} inline; {$endif}
-procedure AIM_itemsADD  (var   AIM:rAIM; const Index:tAIM_index; const Count:tAIM_length; const sizeOF:tAIM_sizeOf; const defItemVAL:pointer); overload; {$ifdef _INLINE_} inline; {$endif}
+//procedure AIM_itemsADD  (const AIM:pAIM; const Index:tAIM_index; const Count:tAIM_length; const sizeOF:tAIM_sizeOf; const defItemVAL:pointer); overload; {$ifdef _INLINE_} inline; {$endif}
+//procedure AIM_itemsADD  (var   AIM:rAIM; const Index:tAIM_index; const Count:tAIM_length; const sizeOF:tAIM_sizeOf; const defItemVAL:pointer); overload; {$ifdef _INLINE_} inline; {$endif}
 
-procedure AIM_itemsADD  (const AIM:pAIM; const Index:tAIM_index; const Count:tAIM_length; const sizeOF:tAIM_sizeOf); overload; {$ifdef _INLINE_} inline; {$endif}
-procedure AIM_itemsADD  (var   AIM:rAIM; const Index:tAIM_index; const Count:tAIM_length; const sizeOF:tAIM_sizeOf); overload; {$ifdef _INLINE_} inline; {$endif}
-
-procedure AIM_itemsDEL  (const AIM:pAIM; const Index:tAIM_index; const Count:tAIM_length; const sizeOF:tAIM_sizeOf); overload; {$ifdef _INLINE_} inline; {$endif}
-procedure AIM_itemsDEL  (var   AIM:rAIM; const Index:tAIM_index; const Count:tAIM_length; const sizeOF:tAIM_sizeOf); overload; {$ifdef _INLINE_} inline; {$endif}
+procedure dAimB_itemsADD  (var   dAIM:tDAIM; const Index:byte; const Count:byte; const sizeOF:tDAIM_sizeOf);                           overload; {$ifdef _INLINE_} inline; {$endif}
+procedure dAimB_itemsADD  (var   dAIM:tDAIM; const Index:byte; const Count:byte; const sizeOF:tDAIM_sizeOf; const defItemVAL:pointer); overload; {$ifdef _INLINE_} inline; {$endif}
+procedure dAimB_itemsDEL  (var   dAIM:tDAIM; const Index:byte; const Count:byte; const sizeOF:tDAIM_sizeOf);                           overload; {$ifdef _INLINE_} inline; {$endif}
 
 //------------------------------------------------------------------------------
 (*
@@ -129,9 +128,10 @@ implementation
 {%region ' inSide`рские фунции, то есть НЕ видимые снаружы :-) '    /hold}
 
 
-function _length_(dAIM:tDAIM):byte; inline;
+function _length_(dAIM:tDAIM):byte; {$ifdef _INLINE_} inline; {$endif}
 begin
-    result:=pByte(dAIM)^;
+    if dAIM<>nil then result:=pByte(dAIM)^
+                  else result:=0
 end;
 
 procedure _setVarLength_(dAIM:tDAIM; const Value:byte); inline;
@@ -145,7 +145,7 @@ end;
   @param (sizeOF размер в БАЙТах одного элемента массива)
   @param (Value  указатель на значение)
   }
-procedure _fillValues_(start:pointer; const Count:byte; const sizeOF:tDAIM_sizeOf; const Value:pointer); {$ifdef _INLINE_} inline; {$endif}
+procedure _fillValues_(start:pointer; const Count:SizeInt; const sizeOF:tDAIM_sizeOf; const Value:pointer); {$ifdef _INLINE_} inline; {$endif}
 begin
     case sizeOF of
      1{sizeOf(byte)} :FillByte ( byte (start^) , Count, pByte (Value)^ );
@@ -155,7 +155,12 @@ begin
      else       FillByte ( byte(start^) , Count*sizeOF, pByte (Value)^ );
     end;
 end;
+
 (*
+
+
+
+
 {-D-[ Array in Mem ] (!!! БЕЗ проверок !!!) Установить длину массива
   @param (AIM    обрабатываемый массив)
   @param (Value  НОВАЯ длина, БОЛЬШЕ 0)
@@ -227,21 +232,32 @@ end;
 //------------------------------------------------------------------------------
 
 {-D-[ Array in Mem ] ИНИЦИАЛИЗИРОВАТЬ }
-procedure dAimB_INITialize(var dAIM:tDAIM; const Count:tDAIMb_count; const sizeOf:tDAIM_sizeOf);
-begin
-    {$ifdef _DEBUG_}
-      if Count =0 then raise Exception.Create('wrong: "Count"==0');
-      if sizeOf=0 then raise Exception.Create('wrong: "sizeOf"==0');
-    {$endif}
-    getMem(dAIM,cLengthSize+sizeOf*Count);
-end;
-
-{-D-[ Array in Mem ] ИНИЦИАЛИЗИРОВАТЬ }
 procedure dAimB_INITialize(var dAIM:tDAIM);
 begin
     dAIM:=NIL;
 end;
 
+{-D-[ Array in Mem ] ИНИЦИАЛИЗИРОВАТЬ }
+procedure dAimB_INITialize(var dAIM:tDAIM; const Count:byte; const sizeOf:tDAIM_sizeOf);
+begin
+    {$ifdef _DEBUG_}
+      if Count =0 then raise Exception.Create('wrong: "Count"==0');
+      if sizeOf=0 then raise Exception.Create('wrong: "sizeOf"==0');
+    {$endif}
+    getMem       (dAIM,cLengthSize+sizeOf*Count);
+   _setVarLength_(dAIM,Count);
+end;
+
+procedure dAimB_INITialize(var dAIM:tDAIM; const Count:tDAIMb_count; const sizeOf:tDAIM_sizeOf; const defItemVAL:pointer);
+begin
+  {$ifdef _DEBUG_}
+    if Count =0 then raise Exception.Create('wrong: "Count"==0');
+    if sizeOf=0 then raise Exception.Create('wrong: "sizeOf"==0');
+    if defItemVAL=nil then raise Exception.Create('wrong: "defItemVAL"==NIL');
+  {$endif}
+    dAimB_INITialize(dAIM,Count,sizeOf);
+   _fillValues_(dAIM+cLengthSize,Count,sizeOF,defItemVAL);
+end;
 
 // FINALized
 //------------------------------------------------------------------------------
@@ -249,15 +265,21 @@ end;
 {-D-[ Array in Mem ] ФИНАЛИЗИРОВАТЬ массив, очистить память
   @param(AIM    указатель на массив)
   @param(sizeOF размер в БАЙТах одного элемента массива)
+  ---
+  *! проверка sizeOf==0 ТОЛЬКО в режиме "DEBUG"
   }
 procedure dAimB_FINALize(var dAIM:tDAIM; const sizeOf:tDAIM_sizeOf);
 begin
+    {$ifdef _DEBUG_}
+        if sizeOf=0 then raise Exception.Create('wrong: "sizeOf"==0');
+    {$endif}
     if dAIM<>nil then begin
         {$ifdef _DEBUG_}
           if pDAIMb_count(dAIM)^=0 then raise Exception.Create('wrong: "Count"==0');
           if sizeOf=0 then raise Exception.Create('wrong: "sizeOf"==0');
         {$endif}
         Freemem(dAIM,cLengthSize+sizeOF*_length_(dAIM)); //< зачистили
+        dAIM:=NIL;
     end;
 end;
 
@@ -271,7 +293,7 @@ end;
   @param (sizeOF размер в БАЙТах одного элемента массива)
   @return(указатель на элемент !!! выход за переделы массива не проверяется)
   }
-function dAimB_clc_pItem(var dAIM:tDAIM; const Index:tDAIMb_Count; const sizeOF:tDAIM_sizeOf):pointer;
+function dAimB_clc_pItem(const dAIM:tDAIM; const Index:byte; const sizeOF:tDAIM_sizeOf):pointer;
 begin
     result:=dAIM+cLengthSize+Index*sizeOf;
 end;
@@ -294,9 +316,10 @@ end;
 //------------------------------------------------------------------------------
 
 {-D-[ Array in Mem ] получить ДЛИННУ массива }
-function dAimB_getLength(const dAIM:tDAIM):tAIM_length;
+function dAimB_getLength(const dAIM:tDAIM):byte;
 begin
-    result:=_length_(dAIM);
+    if dAIM<>nil then result:=_length_(dAIM)
+    else result:=0;
 end;
 
 {-D-[ Array in Mem ] Установить длину массива
@@ -310,13 +333,15 @@ end;
 procedure dAimB_setLength(var dAIM:tDAIM; const Value:byte; const sizeOF:tDAIM_sizeOf; const defItemVAL:pointer);
 begin
     if Value<>_length_(dAIM) then begin
-        if Value=0 then dAimB_FINALize(AIM,sizeOF)
+        if Value=0 then dAimB_FINALize(dAIM,sizeOF)
         else begin
-            if dAIM=nil then Getmem    (dAIM,cLengthSize+sizeOF*Value)
-                        else ReAllocMem(dAIM,cLengthSize+sizeOF*Value);
-            if dAimB_clc_pItem(_length_(dAIM))<Value
-            then _fillValues_(dAimB_clc_pItem(_length_(dAIM)),Value-_length_(dAIM),sizeOF)
-           _setVarLength_(dAIM,Value);
+            if dAIM=nil then dAimB_INITialize(dAIM,Value,sizeOF,defItemVAL)
+            else begin //< меняются размеры
+                ReAllocMem(dAIM,cLengthSize+sizeOF*Value);
+                if _length_(dAIM)<Value //< если увеличился
+                then _fillValues_(dAimB_clc_pItem(dAim,_length_(dAIM),sizeOF),Value-_length_(dAIM),sizeOF,defItemVAL);
+               _setVarLength_(dAIM,Value); //< переустановим длинну
+            end;
         end;
     end;
 end;
@@ -329,7 +354,7 @@ end;
 procedure dAimB_setLength(var dAIM:tDAIM; const Value:byte; const sizeOF:tDAIM_sizeOf);
 begin
     if Value<>_length_(dAIM) then begin
-        if Value=0 then dAimB_FINALize(AIM,sizeOF)
+        if Value=0 then dAimB_FINALize(dAIM,sizeOF)
         else begin
             if dAIM=nil then Getmem    (dAIM,cLengthSize+sizeOF*Value)
                         else ReAllocMem(dAIM,cLengthSize+sizeOF*Value);
@@ -395,6 +420,7 @@ begin
     AIM_itemsADD(@AIM,Index,Count,sizeOF,defItemVAL);
 end;
 
+*)
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 {-D-[ Array in Mem ] Добавть элементы в массив
@@ -406,30 +432,33 @@ end;
   *! если Index больше длинны массива, то массив будет УВЕЛИЧЕН до необходимого
      размера, тоесть до длинны Index+Count
   }
-procedure AIM_itemsADD(const AIM:pAIM; const Index:tAIM_index; const Count:tAIM_length; const sizeOF:tAIM_sizeOf);
+procedure dAimB_itemsADD(var dAIM:tDAIM; const Index:byte; const Count:byte; const sizeOF:tDAIM_sizeOf);
 begin
   {$ifdef fpc}
     //!!! благодара FPC реализации move, копирование будет с "конца" отрезка к
     //!!! началу, и о пересечении отрезков копирования можно не беспокоиться
     if Count>0 then begin
-        if (AIM^.length<>0)and(Index<AIM^.length) then begin
-            ReallocMem(AIM^.p0data, sizeOF*(AIM^.length+Count));
+        if (dAIM<>nil)and(Index<_length_(dAIM)) then begin
+            ReallocMem(dAIM,cLengthSize+sizeOF*(_length_(dAIM)+Count));
             move(//< переносим данные
-                  byte(AIM_clc_pItem(AIM,Index,      sizeOF)^), //< откуда
-                  byte(AIM_clc_pItem(AIM,Index+Count,sizeOF)^), //< куда
-                  (AIM^.length-Index)*sizeOf                    //< скока
+                  byte(dAimB_clc_pItem(dAIM,Index,      sizeOF)^), //< откуда
+                  byte(dAimB_clc_pItem(dAIM,Index+Count,sizeOF)^), //< куда
+                  (_length_(dAIM)-Index)*sizeOf                 //< скока
                 );
-            AIM^.length:=AIM^.length+count;
+           _setVarLength_(dAIM,_length_(dAIM)+Count);
         end
        else begin //< за грани-и-ицей ...тучи ходят хму-у-уро ..
            // сдесь в ЛЮБОМ случае увеличиваем размер массива СПРАВА
-          _setLength_(AIM,Index+Count,sizeOF)
+           if dAIM=nil then GetMem    (dAIM, cLengthSize+(Index+Count)*sizeOF)
+                       else ReallocMem(dAIM, cLengthSize+(Index+Count)*sizeOF);
+          _setVarLength_(dAIM,Index+Count);
        end;
     end;
   {$else}
       {$error function is NOT implemented}
   {$endif}
 end;
+
 
 {-D-[ Array in Mem ] Добавть элементы в массив
   @param (AIM    обрабатываемый массив)
@@ -440,9 +469,36 @@ end;
   *! если Index больше длинны массива, то массив будет УВЕЛИЧЕН до необходимого
      размера, тоесть до длинны Index+Count
   }
-procedure AIM_itemsADD(var AIM:rAIM; const Index:tAIM_index; const Count:tAIM_length; const sizeOF:tAIM_sizeOf);
+procedure dAimB_itemsADD(var dAIM:tDAIM; const Index:byte; const Count:byte; const sizeOF:tDAIM_sizeOf; const defItemVAL:pointer);
 begin
-    AIM_itemsADD(@AIM,Index,Count,sizeOf);
+  {$ifdef fpc}
+    //!!! благодара FPC реализации move, копирование будет с "конца" отрезка к
+    //!!! началу, и о пересечении отрезков копирования можно не беспокоиться
+    if Count>0 then begin
+        if (dAIM<>nil)and(Index<_length_(dAIM)) then begin
+            ReallocMem(dAIM,cLengthSize+sizeOF*(_length_(dAIM)+Count));
+            move(//< переносим данные
+                  byte(dAimB_clc_pItem(dAIM,Index,      sizeOF)^), //< откуда
+                  byte(dAimB_clc_pItem(dAIM,Index+Count,sizeOF)^), //< куда
+                  (_length_(dAIM)-Index)*sizeOf                 //< скока
+                );
+           _fillValues_  (dAIM+cLengthSize+Index*sizeOF,Count,sizeOF,defItemVAL);
+           _setVarLength_(dAIM,_length_(dAIM)+Count);
+        end
+       else begin //< за грани-и-ицей ...тучи ходят хму-у-уро ..
+           // сдесь в ЛЮБОМ случае увеличиваем размер массива СПРАВА
+           if dAIM=nil then dAimB_INITialize(dAIM, Index+Count,sizeOF,defItemVAL)
+           else begin ReallocMem(dAIM, cLengthSize+(Index+Count)*sizeOF);
+              _fillValues_  (dAIM+cLengthSize+_length_(dAIM)*sizeOF,
+                             Index+Count-_length_(dAIM),
+                             sizeOF,defItemVAL);
+              _setVarLength_(dAIM,Index+Count);
+           end;
+       end;
+    end;
+  {$else}
+      {$error function is NOT implemented}
+  {$endif}
 end;
 
 
@@ -454,26 +510,31 @@ end;
   @param (Index  индекс элемента, НАЧИНАЯ с которого, будут УДАЛЕНЫ)
   @param (Count  количество удаляемых элементов)
   @param (sizeOF размер в БАЙТах одного элемента массива)
+  ---
+  *! проверка dAIM--неПуст ТОЛЬКО в режиме "DEBUG"
   }
-procedure AIM_itemsDEL(const AIM:pAIM; const Index:tAIM_index; const Count:tAIM_length; const sizeOF:tAIM_sizeOf);
+procedure dAimB_itemsDEL(var dAIM:tDAIM; const Index:byte; const Count:byte; const sizeOF:tDAIM_sizeOf);
 begin
+  {$ifdef _DEBUG_}
+      if dAIM=nil then raise Exception.Create('"dAIM"==NIL');
+  {$endif}
   {$ifdef fpc}
     //!!! благодара FPC реализации move, копирование будет с "конца" отрезка к
     //!!! началу, и о пересечении отрезков копирования можно не беспокоиться
-    if (0<AIM^.length)and(Index<AIM^.length)and(Count>0) then begin //< имеет ли смысл
-        if (Index=0)and(AIM^.length<=Count) then AIM_FINALize(AIM,sizeOF)
+    if (Index<_length_(dAIM))and(Count>0) then begin //< имеет ли смысл
+        if (Index=0)and(_length_(dAIM)<=Count) then dAimB_FINALize(dAIM,sizeOF)
         else begin
-            if (Index+Count)<AIM^.length then begin //< надо "передвинуть" содержимое
+            if (Index+Count)<_length_(dAIM) then begin //< надо "передвинуть" содержимое
                 move(//< переносим данные
-                      byte(AIM_clc_pItem(AIM,Index+Count,sizeOF)^),  //< откуда
-                      byte(AIM_clc_pItem(AIM,Index      ,sizeOF)^),  //< куда
-                      (AIM^.length-Index-Count)*sizeOf               //< скока
+                      byte(dAimB_clc_pItem(dAIM,Index+Count,sizeOF)^),  //< откуда
+                      byte(dAimB_clc_pItem(dAIM,Index      ,sizeOF)^),  //< куда
+                      (_length_(dAIM)-Index-Count)*sizeOf               //< скока
                     );
-                AIM^.length:=AIM^.length-Count;
+               _setVarLength_(dAIM,_length_(dAIM)-Count);
             end
-            else AIM^.length:=index;
+            else _setVarLength_(dAIM,Index);
             // изменение размеров
-            ReallocMem(AIM^.p0data, AIM^.length*sizeOF);
+            ReallocMem(dAIM, cLengthSize+_length_(dAIM)*sizeOF);
          end;
     end;
   {$else}
@@ -481,15 +542,4 @@ begin
   {$endif}
 end;
 
-{-D-[ Array in Mem ] Удалить элементы из массива
-  @param (AIM    обрабатываемый массив)
-  @param (Index  индекс элемента, НАЧИНАЯ с которого, будут УДАЛЕНЫ)
-  @param (Count  количество удаляемых элементов)
-  @param (sizeOF размер в БАЙТах одного элемента массива)
-  }
-procedure AIM_itemsDEL(var AIM:rAIM; const Index:tAIM_index; const Count:tAIM_length; const sizeOF:tAIM_sizeOf);
-begin
-    AIM_itemsDEL(@AIM,Index,Count,sizeOf)
-end;
-     *)
 end.
