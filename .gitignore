@@ -1,1 +1,6 @@
-backup/*
+Thumbs.db
+*.exe
+*.res
+*.lps
+[Bb]ackup/
+[Ll]ib/
