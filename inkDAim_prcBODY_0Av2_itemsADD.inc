@@ -42,7 +42,7 @@ begin
            if dAIM=nil then begin
               // делаем вызов
               // dAim_INITialize(var dAIM:pointer; const Length:_tInkDAIM_tLength_; const defItemVAL:_tInkDAIM_tItem_);
-              {$define Length:=Index+Count}
+              {$define Length:=(Index+Count)} //< !!! скобки ОБЯЗАТЕЛЬНЫ !!!
               {$i inkDAim_prcBODY_00v2_INITialize.inc};
               {$undef Length}
            end
