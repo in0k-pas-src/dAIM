@@ -34,6 +34,19 @@ _cInkDAIM_zItem_  =  sizeOf(_tInkDAIM_tItem_);
 {$MACRO ON}
 
 
+{$ifdef CPU32}
+procedure FillDWord(var x:pointer;count:SizeInt;value:pointer); overload; inline;
+begin
+    FillDWord({%H-}DWord(x),count,{%H-}DWord(value))
+end;
+{$endif}
+{$ifdef CPU64}
+procedure FillQWord(var x:pointer;count:SizeInt;value:pointer); overload; inline;
+begin
+    FillQWord({%H-}QWord(x),count,{%H-}QWord(value))
+end;
+{$endif}
+
 // с помощю этого макроса выходим на функцию ЗАПОЛНЕНИЯ массива значением
 {$undef _mInkDAIM_pFILL}
 {$IF _cInkDAIM_zItem_=1}

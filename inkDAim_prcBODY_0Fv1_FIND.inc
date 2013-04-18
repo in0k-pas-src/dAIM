@@ -34,6 +34,7 @@ begin
             result:=true;
             BREAK;
         end;
+        inc(Index);
     end;
 end;
 
