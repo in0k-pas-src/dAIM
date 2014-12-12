@@ -57,6 +57,7 @@ interface
 procedure dAimBB_INITialize(var   dAIM:pointer);                                           {$ifdef _INLINE_} inline; {$endif} overload;
 procedure dAimBB_INITialize(var   dAIM:pointer; const Length:byte);                        {$ifdef _INLINE_} inline; {$endif} overload;
 procedure dAimBB_INITialize(var   dAIM:pointer; const Length:byte; const defItemVAL:byte); {$ifdef _INLINE_} inline; {$endif} overload;
+
 procedure dAimBB_initVALUES(var   dAIM:pointer; const Value :byte);                        {$ifdef _INLINE_} inline; {$endif}
 
 procedure dAimBB_FINAL     (var   dAIM:pointer);                                           {$ifdef _INLINE_} inline; {$endif}
@@ -130,7 +131,7 @@ begin
   {$i inkDAim_prcBODY_00v2_INITialize.inc}
 end;
 
-{-D-[ Array in Mem ] ЗАПОЛНИТЬ созданный массив ЗНАЧЕНИЯМИ
+{[ Array in Mem ] ЗАПОЛНИТЬ созданный массив ЗНАЧЕНИЯМИ
   @param (dAIM  обрабатываемый массив)
   @param (Value значение, которое будет помещено в КАЖДЫЙ элемент)
   }
